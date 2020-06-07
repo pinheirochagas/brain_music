@@ -21,7 +21,7 @@ values = 0:1/fs:duration;
 
 % sound_all = [];
 % Transform data to sound
-for i = 1:10%size(data_plot,1) % take first 10 trials
+for i = 1:12%size(data_plot,1) % take first 10 trials
     RT_idx = (round(trials_final.RT(i)*data.fsample) + abs(min(data.time)*data.fsample));
     times = 1:RT_idx;
     data_plot_tmp = data_plot(i,:);
