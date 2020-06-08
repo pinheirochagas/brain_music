@@ -166,6 +166,27 @@ c = a*y
 
 %% Directly to MIDI
 
+notes = {'d', 'd#','r', 'r#', 'm', 'f', 'f#', 'so', 'so#', 'l', 'l#', 'si'}';
+notes_all = cell(length(notes),1,1);
+count = 1;
+for io = 1:10
+    start_oc = num2str(io);
+    for i = 1:length(notes)
+        notes_all{count} = [notes{i} start_oc];
+        count = count+1;
+    end
+end
+notes_all(1) =[]
+notes_all_full = cell(127,1,1);
+notes_all_full(1:size(notes_all,1)) = notes_all
+notes_all_full(end-7:end) = {'d11', 'd#11','r11', 'r#11', 'm11', 'f11', 'f#11', 'so11',};
+
+midi_mapping = table;
+midi_mapping.values = [1:127]';
+midi_mapping.notes = notes_all_full;
+
+notes_elec = {'d6', 'm6', 'so6', 'si6', 'd7'};
+
 
 data_elec = [];
 for ielec = 1:length(electrodes)
@@ -173,7 +194,7 @@ for ielec = 1:length(electrodes)
     data_plot = data_plot(idx,:);
 
     data_plot_filt = [];
-    for i = 1:10%:size(data_plot,1) % take first 10 trials
+    for i = 1:size(data_plot,1) % take first 10 trials
         RT_idx = (round(trials_final.RT(i)*data.fsample) + abs(min(data.time)*data.fsample));
         times = 1:RT_idx;
         data_plot_tmp = data_plot(i,:);
@@ -182,27 +203,35 @@ for ielec = 1:length(electrodes)
         data_plot_tmp = downsample(data_plot_tmp,10);
         data_plot_filt(i,:) = data_plot_tmp;
     end
-    data_elec(:,ielec) = sum(data_plot_filt);
+    data_elec_sum  = sum(data_plot_filt);
+    data_elec_sum = round(data_elec_sum/max(data_elec_sum) * 127); % find better way to scale;
+    data_elec_sum(isnan(data_elec_sum)) = 1;
     
     
-    
-    
+    data_elec(:,ielec) = data_elec_sum;
+    vols = round(data_elec_sum/max(data_elec_sum) * 100)';
+%     
+%     single_note = data_elec_sum;
+%     single_note(single_note>1) = 100;
     % Make MIDI
+    
+    note = midi_mapping{find(strcmp(midi_mapping.notes, notes_elec{ielec})),1};
+    
     
     % initialize matrix:
     N = size(data_elec,1);
     M = zeros(N,6);
     M(:,1) = 1;         % all in track 1
     M(:,2) = 1;         % all in channel 1
-    M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
-    M(:,4) = 60 + round(40*rand(N,1));  % random volumes
-    M(:,5) = 10 * rand(N,1);
-    M(:,6) = M(:,5) + .2 + rand(N,1);  % random duration .2 -> 1.2 seconds
-
+    M(:,3) = repmat(note,size(data_elec,1), 1);  % random note numbers data_elec(:,ielec)
+    M(:,4) = vols;  % random volumes
+    M(:,5) = linspace(1,size(data_elec,1), size(data_elec,1));
+    M(:,6) = M(:,5) + .1;  % random duration .2 -> 1.2 seconds
     midi_new = matrix2midi(M);
-    writemidi(midi_new, 'testout2.mid');
-
+    writemidi(midi_new, sprintf('%s/midi_%s.mid', dir_code, num2str(ielec)));
 end
+
+
 
 
 
@@ -218,7 +247,7 @@ M(:,5) = 10 * rand(N,1);
 M(:,6) = M(:,5) + .2 + rand(N,1);  % random duration .2 -> 1.2 seconds
 
 midi_new = matrix2midi(M);
-writemidi(midi_new, 'testout2.mid');
+writemidi(midi_new, [dir_code '/testout5.mid']);
 
 
 % initialize matrix:
