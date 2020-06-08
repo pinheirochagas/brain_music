@@ -138,3 +138,119 @@ for ie = 1:length(electrodes)
 end
 
 
+
+
+
+
+
+
+
+% Preapare sound
+
+% Sine
+amp = 10;
+fs = 20500;  % sampling frequency
+duration = 0.05;
+values = 0:1/fs:duration;
+freq = 400;
+a = amp*sin(2*pi* freq*values);
+
+%Gaussian
+x = [-3:.1:3];
+y = normpdf(x,0,1);
+plot(x,y)
+
+
+c = a*y
+
+
+%% Directly to MIDI
+
+
+data_elec = [];
+for ielec = 1:length(electrodes)
+    data_plot = squeeze(data.wave(trials_no,ielec,:));
+    data_plot = data_plot(idx,:);
+
+    data_plot_filt = [];
+    for i = 1:10%:size(data_plot,1) % take first 10 trials
+        RT_idx = (round(trials_final.RT(i)*data.fsample) + abs(min(data.time)*data.fsample));
+        times = 1:RT_idx;
+        data_plot_tmp = data_plot(i,:);
+        data_plot_tmp(times(end):(abs(data.time(1))+data.time(end))*data.fsample+1) = nan;
+        data_plot_tmp(data_plot_tmp<=0) = 0;
+        data_plot_tmp = downsample(data_plot_tmp,10);
+        data_plot_filt(i,:) = data_plot_tmp;
+    end
+    data_elec(:,ielec) = sum(data_plot_filt);
+    
+    
+    
+    
+    % Make MIDI
+    
+    % initialize matrix:
+    N = size(data_elec,1);
+    M = zeros(N,6);
+    M(:,1) = 1;         % all in track 1
+    M(:,2) = 1;         % all in channel 1
+    M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
+    M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+    M(:,5) = 10 * rand(N,1);
+    M(:,6) = M(:,5) + .2 + rand(N,1);  % random duration .2 -> 1.2 seconds
+
+    midi_new = matrix2midi(M);
+    writemidi(midi_new, 'testout2.mid');
+
+end
+
+
+
+% initialize matrix:
+N = 200;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 10 * rand(N,1);
+M(:,6) = M(:,5) + .2 + rand(N,1);  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+writemidi(midi_new, 'testout2.mid');
+
+
+% initialize matrix:
+N = 261;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = peak_vals_trans';  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 10 * rand(N,1);
+M(:,6) = M(:,5) + .2;  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+fname = sprintf('%s/erp_plot_%s.mid',dir_code, num2str(ie));
+writemidi(midi_new, fname);
+
+
+% initialize matrix:
+N = 200;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 1.01:0.1:21;
+M(:,6) = M(:,5)+0.1;  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+writemidi(midi_new, [dir_code '/testout3.mid']);
+
+
+M(:,3) = peak_vals_trans(1:200)
+

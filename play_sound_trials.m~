@@ -4,7 +4,7 @@ load(data_fn)
 
 % Select
 electrodes = [105, 15, 61, 81, 70];
-elect_regions = {'LOG', 'pITG','aIPS','SPL','PM'};
+elect_regions = {'lateral occipital gyrus (LOG)', 'posterior inferior temporal gyrus (pITG)','anterior intraparietal sulcus (aIPS)','superior parietal lobe (SPL)','premotor cortex (PM)'};
 trials = data.trialinfo_all{1};
 trials_no = find(strcmp(trials.condNames, 'math') & trials.spike_hfb==false & trials.RT < 5 & trials.RT > 1);
 trials_final = trials(trials_no,:);
@@ -61,15 +61,23 @@ for ielec = 1:length(electrodes)
     b_sum = sum(b_all);  
     
     %% Plot spectrogram of all trials
-    subplot(length(electrodes),1,ielec)
-    pspectrum(b_sum,1000,'spectrogram','TimeResolution',0.1,'OverlapPercent',0,'MinThreshold',-20);
-    ylabel()
-    set(gca,'fontsize',16)
-    title(elect_regions{ielec}) 
-    
-    colorpmap(viridis)
-%     audiowrite(sprintf('%s/mmr_audio/mmr_audio_elect_%s.wav', dir_code, num2str(electrodes(ielec))),b_sum,10000);
+%     subplot(length(electrodes),1,ielec)
+%     pspectrum(b_sum,10000,'spectrogram','TimeResolution',0.1,'OverlapPercent',0,'MinThreshold',-20);
+%     ylim([0 2])
+%     xlim([0 11])
+%     xlabel('Time')
+%     set(gca,'xtick',[])
+%     set(gca,'fontsize',16)
+%     title(elect_regions{ielec}) 
+%     
+%     colormap(viridis)
+    b_sum = bandpass(b_sum,[300 2000], 10000);
+    audiowrite(sprintf('%s/mmr_audio/mmr_audio_elect_%s.wav', dir_code, num2str(electrodes(ielec))),b_sum,10000);
 end
+fname = [dir_code filesep 'spectrogram_elecs.png'];
+savePNG(gcf,600,fname)
+
+
 figure('units', 'normalized', 'outerposition', [0 0 0.4 0.5])
 subplot(3,1,1)
 plot(data.time, data_plot(i,:), 'LineWidth',2, 'Color', 'k')
@@ -129,4 +137,115 @@ for ie = 1:length(electrodes)
     close all
 end
 
+
+
+
+
+
+
+
+
+% Preapare sound
+
+% Sine
+amp = 10;
+fs = 20500;  % sampling frequency
+duration = 0.05;
+values = 0:1/fs:duration;
+freq = 400;
+a = amp*sin(2*pi* freq*values);
+
+%Gaussian
+x = [-3:.1:3];
+y = normpdf(x,0,1);
+plot(x,y)
+
+
+c = a*y
+
+
+%% Directly to MIDI
+
+
+for ielec = 1:length(electrodes)
+    data_plot = squeeze(data.wave(trials_no,ielec,:));
+    data_plot = data_plot(idx,:);
+
+    b_all = [];
+    for i = 1:10%:size(data_plot,1) % take first 10 trials
+        RT_idx = (round(trials_final.RT(i)*data.fsample) + abs(min(data.time)*data.fsample));
+        times = 1:RT_idx;
+        data_plot_tmp = data_plot(i,:);
+        data_plot_tmp(times(end):(abs(data.time(1))+data.time(end))*data.fsample+1) = 0;
+        data_plot_tmp(data_plot_tmp<=0) = 0;
+        data_plot_tmp = downsample(data_plot_tmp,10);
+        data_plot_filt(i,:) = peak_vals_trans;
+    end
+    b_mean = mean(b_all);  
+    b_sum = sum(b_all);  
+    
+    %% Plot spectrogram of all trials
+%     subplot(length(electrodes),1,ielec)
+%     pspectrum(b_sum,10000,'spectrogram','TimeResolution',0.1,'OverlapPercent',0,'MinThreshold',-20);
+%     ylim([0 2])
+%     xlim([0 11])
+%     xlabel('Time')
+%     set(gca,'xtick',[])
+%     set(gca,'fontsize',16)
+%     title(elect_regions{ielec}) 
+%     
+%     colormap(viridis)
+    b_sum = bandpass(b_sum,[300 2000], 10000);
+    audiowrite(sprintf('%s/mmr_audio/mmr_audio_elect_%s.wav', dir_code, num2str(electrodes(ielec))),b_sum,10000);
+end
+
+
+
+% initialize matrix:
+N = 200;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 10 * rand(N,1);
+M(:,6) = M(:,5) + .2 + rand(N,1);  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+writemidi(midi_new, 'testout2.mid');
+
+
+% initialize matrix:
+N = 261;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = peak_vals_trans';  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 10 * rand(N,1);
+M(:,6) = M(:,5) + .2;  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+fname = sprintf('%s/erp_plot_%s.mid',dir_code, num2str(ie));
+writemidi(midi_new, fname);
+
+
+% initialize matrix:
+N = 200;
+M = zeros(N,6);
+
+M(:,1) = 1;         % all in track 1
+M(:,2) = 1;         % all in channel 1
+M(:,3) = 30 + round(60*rand(N,1));  % random note numbers
+M(:,4) = 60 + round(40*rand(N,1));  % random volumes
+M(:,5) = 1.01:0.1:21;
+M(:,6) = M(:,5)+0.1;  % random duration .2 -> 1.2 seconds
+
+midi_new = matrix2midi(M);
+writemidi(midi_new, [dir_code '/testout3.mid']);
+
+
+M(:,3) = peak_vals_trans(1:200)
 
