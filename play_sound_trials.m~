@@ -202,7 +202,7 @@ for ie = 1:length(electrodes)
     ylim([min(vols) max(vols)])
     set(gca,'ytick',[])
     set(gca,'yticklabel',[])
-    box off
+    box
     
     
     fname = sprintf('%s/flux_%s.pnd', dir_code, num2str(ielec));
