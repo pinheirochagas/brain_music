@@ -185,7 +185,7 @@ midi_mapping = table;
 midi_mapping.values = [1:127]';
 midi_mapping.notes = notes_all_full;
 
-notes_elec = {'d6', 'm6', 'so6', 'si6', 'd7'};
+notes_elec = {'d6', 'm6', 'so6', 'si6', 'f#7'};
 
 
 data_elec = [];
@@ -204,7 +204,14 @@ for ielec = 1:length(electrodes)
         data_plot_filt(i,:) = data_plot_tmp;
     end
     data_elec_sum  = sum(data_plot_filt);
+    if ielec == 5
+        data_elec_sum(1:10) = 10;
+    else
+    end
     data_elec_sum = round(data_elec_sum/max(data_elec_sum) * 127); % find better way to scale;
+
+    
+    
     data_elec_sum(isnan(data_elec_sum)) = 1;
     
     
@@ -216,6 +223,9 @@ for ielec = 1:length(electrodes)
     % Make MIDI
     
     note = midi_mapping{find(strcmp(midi_mapping.notes, notes_elec{ielec})),1};
+    notes_final = repmat(note,size(data_elec,1), 1);
+    notes_final(vols==1) = 0;
+    vols(vols==1) = 0;
     
     
     % initialize matrix:
@@ -223,7 +233,7 @@ for ielec = 1:length(electrodes)
     M = zeros(N,6);
     M(:,1) = 1;         % all in track 1
     M(:,2) = 1;         % all in channel 1
-    M(:,3) = repmat(note,size(data_elec,1), 1);  % random note numbers data_elec(:,ielec)
+    M(:,3) = notes_final;  % random note numbers data_elec(:,ielec)
     M(:,4) = vols;  % random volumes
     M(:,5) = linspace(1,size(data_elec,1), size(data_elec,1));
     M(:,6) = M(:,5) + .1;  % random duration .2 -> 1.2 seconds
